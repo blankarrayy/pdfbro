@@ -1,0 +1,22 @@
+# Info
+.DS_Store
+Thumbs.db
+
+# Logs
+logs
+*.log
+npm-debug.log*
+
+# Node
+node_modules/
+dist/
+package-lock.json
+
+# Tooling
+.vscode/
+.idea/
+*.tsbuildinfo
+
+# Env
+.env
+.npmrc

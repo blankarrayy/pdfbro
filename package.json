@@ -1,0 +1,31 @@
+{
+    "name": "n8n-nodes-pdfbro",
+    "version": "0.1.0",
+    "description": "Offline PDF utility node for n8n",
+    "keywords": [
+        "n8n-community-node"
+    ],
+    "license": "MIT",
+    "author": "Blankarray",
+    "repository": {
+        "type": "git",
+        "url": "https://github.com/yourname/n8n-nodes-pdfbro"
+    },
+    "main": "index.js",
+    "scripts": {
+        "build": "tsc",
+        "dev": "tsc --watch"
+    },
+    "files": [
+        "dist"
+    ],
+    "dependencies": {
+        "pdf-lib": "^1.17.1",
+        "pdf-parse": "^1.1.1"
+    },
+    "devDependencies": {
+        "n8n-workflow": "*",
+        "typescript": "^5.0.0",
+        "@types/node": "^16.0.0"
+    }
+}
