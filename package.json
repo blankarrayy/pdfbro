@@ -1,10 +1,15 @@
 {
     "name": "n8n-nodes-pdfbro",
-    "version": "0.1.0",
+    "version": "0.1.2",
     "description": "Offline PDF utility node for n8n",
     "keywords": [
         "n8n-community-node"
     ],
+    "n8n": {
+        "nodes": [
+            "dist/nodes/PdfUtils/PdfBro.node.js"
+        ]
+    },
     "license": "MIT",
     "author": "Blankarray",
     "repository": {
@@ -13,7 +18,7 @@
     },
     "main": "dist/index.js",
     "scripts": {
-        "build": "tsc",
+        "build": "tsc && copyfiles -u 1 nodes/**/*.svg dist/nodes",
         "dev": "tsc --watch"
     },
     "files": [
@@ -24,8 +29,9 @@
         "pdf-parse": "^1.1.1"
     },
     "devDependencies": {
+        "@types/node": "^16.0.0",
+        "copyfiles": "^2.4.1",
         "n8n-workflow": "*",
-        "typescript": "^5.0.0",
-        "@types/node": "^16.0.0"
+        "typescript": "^5.0.0"
     }
 }

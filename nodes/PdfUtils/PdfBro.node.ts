@@ -8,16 +8,16 @@ import { PDFDocument, degrees } from 'pdf-lib';
 // @ts-ignore
 import pdfParse from 'pdf-parse';
 
-export class PdfUtils implements INodeType {
+export class PdfBro implements INodeType {
     description: INodeTypeDescription = {
-        displayName: 'PDF Utils',
-        name: 'pdfUtils',
+        displayName: 'PdfBro',
+        name: 'pdfBro',
         icon: 'file:pdfUtils.svg',
         group: ['transform'],
         version: 1,
-        description: 'Offline PDF operations',
+        description: 'The ultimate PDF utility (powered by pdf-lib & pdf-parse)',
         defaults: {
-            name: 'PDF Utils',
+            name: 'PdfBro',
         },
         inputs: ['main'],
         outputs: ['main'],

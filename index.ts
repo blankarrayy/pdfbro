@@ -1,3 +1,3 @@
-import { PdfUtils } from './nodes/PdfUtils/PdfUtils.node';
+import { PdfBro } from './nodes/PdfUtils/PdfBro.node';
 
-export const nodes = [PdfUtils];
+export const nodes = [PdfBro];

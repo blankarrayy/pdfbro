@@ -47,3 +47,12 @@ Rotates all pages in the PDF by the specified degrees (default 90).
 ## License
 
 MIT
+
+## Credits & Attribution
+
+This node powers its PDF magic using these awesome open-source libraries:
+
+*   **[pdf-lib](https://github.com/Hopding/pdf-lib)** (MIT License) - PDF creation and modification.
+*   **[pdf-parse](https://gitlab.com/autokent/pdf-parse)** (MIT License) - PDF text extraction.
+
+We are grateful to the maintainers of these projects!
