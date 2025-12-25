@@ -9,7 +9,7 @@
     "author": "Blankarray",
     "repository": {
         "type": "git",
-        "url": "https://github.com/yourname/n8n-nodes-pdfbro"
+        "url": "https://github.com/blankarrayy/pdfbro"
     },
     "main": "index.js",
     "scripts": {
