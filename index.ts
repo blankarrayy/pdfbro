@@ -1,3 +1,3 @@
-import { PdfBro } from './nodes/PdfUtils/PdfBro.node';
+import { PdfBro } from './nodes/PdfBro/PdfBro.node';
 
 export const nodes = [PdfBro];

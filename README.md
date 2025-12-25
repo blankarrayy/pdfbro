@@ -30,19 +30,28 @@ npm install n8n-nodes-pdfbro
 ## Operations
 
 ### Merge PDFs
-Merges all input items containing PDF binary data into a single output item with the merged PDF.
+Link multiple binary fields (up to 10+ via "Add PDF Input") to combine them into a single PDF.
 
 ### Split Pages
-Splits a PDF into multiple items, one per page.
+Split a PDF into separate pages or ranges.
+**Supported Ranges:**
+- `*` : Split every page into a separate file (Burst).
+- `1, 3, 5` : Extract specific pages.
+- `1-5` : Extract bytes 1 to 5.
+- `7-` : Extract from page 7 to the end.
+- `-1` : Extract the last page.
+
+### Invoice Maker (HTML to PDF)
+Convert valid HTML content into a PDF. Useful for generating invoices, reports, or simple documents.
 
 ### Extract Text
-Extracts all text from the PDF and adds it to the JSON output.
+Extracts all text from the PDF.
 
 ### Extract Metadata
-Adds PDF metadata (Title, Author, Creation Date, etc.) to the JSON output.
+Gets title, author, creation date, etc.
 
 ### Rotate Pages
-Rotates all pages in the PDF by the specified degrees (default 90).
+Rotates all pages by X degrees.
 
 ## License
 
@@ -53,6 +62,9 @@ MIT
 This node powers its PDF magic using these awesome open-source libraries:
 
 *   **[pdf-lib](https://github.com/Hopding/pdf-lib)** (MIT License) - PDF creation and modification.
+*   **[pdfmake](http://pdfmake.org/)** (MIT License) - PDF generation engine.
+*   **[html-to-pdfmake](https://github.com/Aymkdn/html-to-pdfmake)** (MIT License) - HTML to PDFMake conversion.
+*   **[jsdom](https://github.com/jsdom/jsdom)** (MIT License) - DOM environment.
 *   **[pdf-parse](https://gitlab.com/autokent/pdf-parse)** (MIT License) - PDF text extraction.
 
 We are grateful to the maintainers of these projects!
