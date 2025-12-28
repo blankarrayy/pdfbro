@@ -12,6 +12,14 @@ This is an n8n community node. It lets you manipulate PDF files in your workflow
 - **Extract Metadata**: Get title, author, page count, etc.
 - **Rotate Pages**: Rotate pages by 90, 180, or 270 degrees.
 
+## Video Tutorials
+
+### How to install PDFBRO
+[![How to install PDFBRO](https://img.youtube.com/vi/jWRK0nHDLaY/0.jpg)](https://youtu.be/jWRK0nHDLaY)
+
+### Generate Invoices on PDFbro for free
+[![Generate Invoices on PDFbro for free](https://img.youtube.com/vi/ybS3MkwGTpE/0.jpg)](https://youtu.be/ybS3MkwGTpE)
+
 ## Installation
 
 Follow the [n8n community nodes documentation](https://docs.n8n.io/integrations/community-nodes/installation/) to install this node.
@@ -68,3 +76,4 @@ This node powers its PDF magic using these awesome open-source libraries:
 *   **[pdf-parse](https://gitlab.com/autokent/pdf-parse)** (MIT License) - PDF text extraction.
 
 We are grateful to the maintainers of these projects!
+
