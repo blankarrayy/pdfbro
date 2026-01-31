@@ -6,6 +6,7 @@ import {
 } from 'n8n-workflow';
 
 import { generateInvoice, InvoiceData, InvoiceItem } from './InvoiceTemplates';
+import { generateOfferLetter, OfferLetterData, DEFAULT_OFFER_LETTER_TEMPLATE } from './OfferLetterTemplates';
 
 export class PdfBro implements INodeType {
     description: INodeTypeDescription = {
@@ -56,6 +57,11 @@ export class PdfBro implements INodeType {
                         name: 'Rotate Pages',
                         value: 'rotate',
                         description: 'Rotate all pages in a PDF',
+                    },
+                    {
+                        name: 'Generate Offer Letter',
+                        value: 'offerLetter',
+                        description: 'Generate a PDF offer letter from a template',
                     },
                 ],
                 default: 'merge',
@@ -163,6 +169,46 @@ export class PdfBro implements INodeType {
                 ],
                 default: 'modern',
                 description: 'Choose an invoice template style',
+            },
+
+            // ========================================
+            // OFFER LETTER OPERATIONS
+            // ========================================
+            {
+                displayName: 'Offer Data (JSON)',
+                name: 'offerData',
+                type: 'json',
+                displayOptions: {
+                    show: {
+                        operation: ['offerLetter'],
+                    },
+                },
+                default: `{
+  "personal_info": {
+    "full_name": "Iam Vaar",
+    "preferred_name": "Vaar"
+  },
+  "job_details": {
+    "title": "Software Engineer",
+    "salary": "$120,000"
+  }
+}`,
+                description: 'JSON object containing data to replace placeholders in the template',
+            },
+            {
+                displayName: 'Template',
+                name: 'templateText',
+                type: 'string',
+                typeOptions: {
+                    rows: 15,
+                },
+                displayOptions: {
+                    show: {
+                        operation: ['offerLetter'],
+                    },
+                },
+                default: DEFAULT_OFFER_LETTER_TEMPLATE,
+                description: 'The offer letter template with placeholders options (e.g. [personal_info.name])',
             },
 
             // ========================================
@@ -774,6 +820,25 @@ export class PdfBro implements INodeType {
                             info: data.info,
                         },
                         binary: items[i].binary,
+                    });
+                } else if (operation === 'offerLetter') {
+                    const offerData = this.getNodeParameter('offerData', i) as OfferLetterData;
+                    const templateText = this.getNodeParameter('templateText', i) as string;
+
+                    // Ensure offerData is an object
+                    const data = typeof offerData === 'string' ? JSON.parse(offerData) : offerData;
+
+                    const pdfBuffer = await generateOfferLetter(templateText, data);
+
+                    returnData.push({
+                        json: {
+                            success: true,
+                            templateLength: templateText.length,
+                            keys: Object.keys(data),
+                        },
+                        binary: {
+                            data: await this.helpers.prepareBinaryData(pdfBuffer, 'offer_letter.pdf', 'application/pdf'),
+                        },
                     });
                 } else if (operation === 'metadata') {
                     const binaryPropertyName = this.getNodeParameter('binaryPropertyName', i) as string;
