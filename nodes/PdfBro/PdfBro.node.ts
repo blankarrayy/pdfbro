@@ -6,7 +6,7 @@ import {
 } from 'n8n-workflow';
 
 import { generateInvoice, InvoiceData, InvoiceItem } from './InvoiceTemplates';
-import { generateOfferLetter, OfferLetterData, DEFAULT_OFFER_LETTER_TEMPLATE } from './OfferLetterTemplates';
+import { generateOfferLetter, OfferLetterData } from './OfferLetterTemplates';
 
 export class PdfBro implements INodeType {
     description: INodeTypeDescription = {
@@ -116,6 +116,31 @@ export class PdfBro implements INodeType {
 
             // SPLIT Operations
             {
+                displayName: 'Password Protected?',
+                name: 'isPasswordProtected',
+                type: 'boolean',
+                default: false,
+                description: 'Whether the input PDF is password protected',
+                displayOptions: {
+                    show: {
+                        operation: ['merge', 'split', 'extractText', 'metadata', 'rotate'],
+                    },
+                },
+            },
+            {
+                displayName: 'Password',
+                name: 'password',
+                type: 'string',
+                typeOptions: { password: true },
+                default: '',
+                displayOptions: {
+                    show: {
+                        isPasswordProtected: [true],
+                    },
+                },
+                description: 'Password to unlock the PDF',
+            },
+            {
                 displayName: 'Split Range',
                 name: 'splitRange',
                 type: 'string',
@@ -172,43 +197,297 @@ export class PdfBro implements INodeType {
             },
 
             // ========================================
-            // OFFER LETTER OPERATIONS
+            // OFFER LETTER OPERATIONS - Company Info
             // ========================================
             {
-                displayName: 'Offer Data (JSON)',
-                name: 'offerData',
-                type: 'json',
+                displayName: 'Company Name',
+                name: 'offerCompanyName',
+                type: 'string',
                 displayOptions: {
                     show: {
                         operation: ['offerLetter'],
                     },
                 },
-                default: `{
-  "personal_info": {
-    "full_name": "Iam Vaar",
-    "preferred_name": "Vaar"
-  },
-  "job_details": {
-    "title": "Software Engineer",
-    "salary": "$120,000"
-  }
-}`,
-                description: 'JSON object containing data to replace placeholders in the template',
+                default: 'Your Company Name',
+                description: 'Your company or business name',
             },
             {
-                displayName: 'Template',
-                name: 'templateText',
+                displayName: 'Company Address',
+                name: 'offerCompanyAddress',
                 type: 'string',
                 typeOptions: {
-                    rows: 15,
+                    rows: 3,
                 },
                 displayOptions: {
                     show: {
                         operation: ['offerLetter'],
                     },
                 },
-                default: DEFAULT_OFFER_LETTER_TEMPLATE,
-                description: 'The offer letter template with placeholders options (e.g. [personal_info.name])',
+                default: '123 Business Street\nCity, State 12345\nCountry',
+                description: 'Your company address',
+            },
+            {
+                displayName: 'Company Email',
+                name: 'offerCompanyEmail',
+                type: 'string',
+                displayOptions: {
+                    show: {
+                        operation: ['offerLetter'],
+                    },
+                },
+                default: 'hr@company.com',
+                description: 'Company email address',
+            },
+            {
+                displayName: 'Company Phone',
+                name: 'offerCompanyPhone',
+                type: 'string',
+                displayOptions: {
+                    show: {
+                        operation: ['offerLetter'],
+                    },
+                },
+                default: '+1 (555) 123-4567',
+                description: 'Company phone number',
+            },
+            {
+                displayName: 'Hiring Manager Name',
+                name: 'offerHiringManagerName',
+                type: 'string',
+                displayOptions: {
+                    show: {
+                        operation: ['offerLetter'],
+                    },
+                },
+                default: 'Jane Smith',
+                description: 'Name of the hiring manager',
+            },
+            {
+                displayName: 'Hiring Manager Title',
+                name: 'offerHiringManagerTitle',
+                type: 'string',
+                displayOptions: {
+                    show: {
+                        operation: ['offerLetter'],
+                    },
+                },
+                default: 'VP of Engineering',
+                description: 'Title of the hiring manager',
+            },
+
+            // ========================================
+            // OFFER LETTER - Candidate Info
+            // ========================================
+            {
+                displayName: 'Candidate Name',
+                name: 'offerCandidateName',
+                type: 'string',
+                displayOptions: {
+                    show: {
+                        operation: ['offerLetter'],
+                    },
+                },
+                default: 'John Doe',
+                description: 'Full name of the candidate',
+            },
+            {
+                displayName: 'Candidate Preferred Name',
+                name: 'offerCandidatePreferredName',
+                type: 'string',
+                displayOptions: {
+                    show: {
+                        operation: ['offerLetter'],
+                    },
+                },
+                default: '',
+                description: 'Preferred name (nickname) for salutation. Leave blank to use first name.',
+            },
+            {
+                displayName: 'Candidate Address',
+                name: 'offerCandidateAddress',
+                type: 'string',
+                typeOptions: {
+                    rows: 3,
+                },
+                displayOptions: {
+                    show: {
+                        operation: ['offerLetter'],
+                    },
+                },
+                default: '456 Candidate Lane\nCity, State 67890',
+                description: 'Candidate mailing address',
+            },
+            {
+                displayName: 'Candidate Email',
+                name: 'offerCandidateEmail',
+                type: 'string',
+                displayOptions: {
+                    show: {
+                        operation: ['offerLetter'],
+                    },
+                },
+                default: 'candidate@email.com',
+                description: 'Candidate email address',
+            },
+
+            // ========================================
+            // OFFER LETTER - Job Details
+            // ========================================
+            {
+                displayName: 'Job Title',
+                name: 'offerJobTitle',
+                type: 'string',
+                displayOptions: {
+                    show: {
+                        operation: ['offerLetter'],
+                    },
+                },
+                default: 'Software Engineer',
+                description: 'Job title being offered',
+            },
+            {
+                displayName: 'Department',
+                name: 'offerDepartment',
+                type: 'string',
+                displayOptions: {
+                    show: {
+                        operation: ['offerLetter'],
+                    },
+                },
+                default: 'Engineering',
+                description: 'Department the position is in',
+            },
+            {
+                displayName: 'Manager Name',
+                name: 'offerManagerName',
+                type: 'string',
+                displayOptions: {
+                    show: {
+                        operation: ['offerLetter'],
+                    },
+                },
+                default: 'John Manager',
+                description: 'Direct manager the candidate will report to',
+            },
+            {
+                displayName: 'Start Date',
+                name: 'offerStartDate',
+                type: 'string',
+                displayOptions: {
+                    show: {
+                        operation: ['offerLetter'],
+                    },
+                },
+                default: '={{ $now.plus(30, "days").format("yyyy-MM-dd") }}',
+                description: 'Expected start date',
+            },
+            {
+                displayName: 'Salary',
+                name: 'offerSalary',
+                type: 'string',
+                displayOptions: {
+                    show: {
+                        operation: ['offerLetter'],
+                    },
+                },
+                default: '100,000',
+                description: 'Annual salary amount (without currency symbol)',
+            },
+            {
+                displayName: 'Currency Symbol',
+                name: 'offerCurrency',
+                type: 'string',
+                displayOptions: {
+                    show: {
+                        operation: ['offerLetter'],
+                    },
+                },
+                default: '$',
+                description: 'Currency symbol (e.g., $, €, £, ₹)',
+            },
+            {
+                displayName: 'Payment Frequency',
+                name: 'offerPaymentFrequency',
+                type: 'options',
+                displayOptions: {
+                    show: {
+                        operation: ['offerLetter'],
+                    },
+                },
+                options: [
+                    { name: 'Weekly', value: 'weekly' },
+                    { name: 'Bi-weekly', value: 'bi-weekly' },
+                    { name: 'Monthly', value: 'monthly' },
+                ],
+                default: 'bi-weekly',
+                description: 'How often salary is paid',
+            },
+            {
+                displayName: 'Benefits',
+                name: 'offerBenefits',
+                type: 'string',
+                displayOptions: {
+                    show: {
+                        operation: ['offerLetter'],
+                    },
+                },
+                default: 'Health, Dental, Vision, and 401(k)',
+                description: 'Benefits included in the offer',
+            },
+
+            // ========================================
+            // OFFER LETTER - Offer Details
+            // ========================================
+            {
+                displayName: 'Offer Date',
+                name: 'offerDate',
+                type: 'string',
+                displayOptions: {
+                    show: {
+                        operation: ['offerLetter'],
+                    },
+                },
+                default: '={{ $now.format("yyyy-MM-dd") }}',
+                description: 'Date of the offer letter',
+            },
+            {
+                displayName: 'Expiration Date',
+                name: 'offerExpirationDate',
+                type: 'string',
+                displayOptions: {
+                    show: {
+                        operation: ['offerLetter'],
+                    },
+                },
+                default: '={{ $now.plus(14, "days").format("yyyy-MM-dd") }}',
+                description: 'Date by which the offer must be accepted',
+            },
+            {
+                displayName: 'Notes',
+                name: 'offerNotes',
+                type: 'string',
+                typeOptions: {
+                    rows: 2,
+                },
+                displayOptions: {
+                    show: {
+                        operation: ['offerLetter'],
+                    },
+                },
+                default: '',
+                description: 'Additional notes to include at the bottom',
+            },
+            {
+                displayName: 'Primary Color',
+                name: 'offerPrimaryColor',
+                type: 'string',
+                displayOptions: {
+                    show: {
+                        operation: ['offerLetter'],
+                    },
+                },
+                default: '#1a5f7a',
+                description: 'Primary accent color in hex format (e.g., #1a5f7a)',
             },
 
             // ========================================
@@ -612,8 +891,17 @@ export class PdfBro implements INodeType {
 
                         if (itemBinary[propName]) {
                             try {
+                                let isPasswordProtected = false;
+                                let password = '';
+                                try {
+                                    isPasswordProtected = this.getNodeParameter('isPasswordProtected', i, false) as boolean;
+                                    if (isPasswordProtected) {
+                                        password = this.getNodeParameter('password', i, '') as string;
+                                    }
+                                } catch (e) {}
+
                                 const validBuffer = await this.helpers.getBinaryDataBuffer(i, propName);
-                                const pdf = await PDFDocument.load(validBuffer);
+                                const pdf = await PDFDocument.load(validBuffer, isPasswordProtected && password ? { password } : undefined);
                                 const copiedPages = await mergedPdf.copyPages(pdf, pdf.getPageIndices());
                                 copiedPages.forEach((page: any) => mergedPdf.addPage(page));
                                 pdfCount++;
@@ -649,13 +937,22 @@ export class PdfBro implements INodeType {
         // Handle other operations per-item
         for (let i = 0; i < items.length; i++) {
             try {
+                let isPasswordProtected = false;
+                let password = '';
+                try {
+                    isPasswordProtected = this.getNodeParameter('isPasswordProtected', i, false) as boolean;
+                    if (isPasswordProtected) {
+                        password = this.getNodeParameter('password', i, '') as string;
+                    }
+                } catch (e) {}
+
                 if (operation === 'split') {
 
                     const binaryPropertyName = this.getNodeParameter('binaryPropertyName', i) as string;
                     const rangeStr = this.getNodeParameter('splitRange', i) as string;
 
                     const validBuffer = await this.helpers.getBinaryDataBuffer(i, binaryPropertyName);
-                    const pdf = await PDFDocument.load(validBuffer);
+                    const pdf = await PDFDocument.load(validBuffer, isPasswordProtected && password ? { password } : undefined);
                     const totalPages = pdf.getPageCount();
 
                     // Parse logic
@@ -788,7 +1085,7 @@ export class PdfBro implements INodeType {
                     const degreesVal = this.getNodeParameter('rotationDegrees', i) as number;
 
                     const validBuffer = await this.helpers.getBinaryDataBuffer(i, binaryPropertyName);
-                    const pdf = await PDFDocument.load(validBuffer);
+                    const pdf = await PDFDocument.load(validBuffer, isPasswordProtected && password ? { password } : undefined);
                     const pages = pdf.getPages();
 
                     pages.forEach((page: any) => {
@@ -810,7 +1107,14 @@ export class PdfBro implements INodeType {
 
                     const binaryPropertyName = this.getNodeParameter('binaryPropertyName', i) as string;
                     const validBuffer = await this.helpers.getBinaryDataBuffer(i, binaryPropertyName);
-                    const data = await pdfParse(validBuffer);
+                    
+                    let bufferToParse = validBuffer;
+                    if (isPasswordProtected && password) {
+                        const pdf = await PDFDocument.load(validBuffer, { password });
+                        bufferToParse = Buffer.from(await pdf.save());
+                    }
+                    
+                    const data = await pdfParse(bufferToParse);
 
                     returnData.push({
                         json: {
@@ -822,19 +1126,47 @@ export class PdfBro implements INodeType {
                         binary: items[i].binary,
                     });
                 } else if (operation === 'offerLetter') {
-                    const offerData = this.getNodeParameter('offerData', i) as OfferLetterData;
-                    const templateText = this.getNodeParameter('templateText', i) as string;
+                    const offerData: OfferLetterData = {
+                        // Company Info
+                        companyName: this.getNodeParameter('offerCompanyName', i) as string,
+                        companyAddress: this.getNodeParameter('offerCompanyAddress', i) as string,
+                        companyEmail: this.getNodeParameter('offerCompanyEmail', i) as string,
+                        companyPhone: this.getNodeParameter('offerCompanyPhone', i) as string,
+                        hiringManagerName: this.getNodeParameter('offerHiringManagerName', i) as string,
+                        hiringManagerTitle: this.getNodeParameter('offerHiringManagerTitle', i) as string,
 
-                    // Ensure offerData is an object
-                    const data = typeof offerData === 'string' ? JSON.parse(offerData) : offerData;
+                        // Candidate Info
+                        candidateName: this.getNodeParameter('offerCandidateName', i) as string,
+                        candidatePreferredName: this.getNodeParameter('offerCandidatePreferredName', i) as string,
+                        candidateAddress: this.getNodeParameter('offerCandidateAddress', i) as string,
+                        candidateEmail: this.getNodeParameter('offerCandidateEmail', i) as string,
 
-                    const pdfBuffer = await generateOfferLetter(templateText, data);
+                        // Job Details
+                        jobTitle: this.getNodeParameter('offerJobTitle', i) as string,
+                        department: this.getNodeParameter('offerDepartment', i) as string,
+                        managerName: this.getNodeParameter('offerManagerName', i) as string,
+                        startDate: this.getNodeParameter('offerStartDate', i) as string,
+                        salary: this.getNodeParameter('offerSalary', i) as string,
+                        currency: this.getNodeParameter('offerCurrency', i) as string,
+                        paymentFrequency: this.getNodeParameter('offerPaymentFrequency', i) as string,
+                        benefits: this.getNodeParameter('offerBenefits', i) as string,
+
+                        // Offer Details
+                        offerDate: this.getNodeParameter('offerDate', i) as string,
+                        expirationDate: this.getNodeParameter('offerExpirationDate', i) as string,
+                        notes: this.getNodeParameter('offerNotes', i) as string,
+
+                        // Styling
+                        primaryColor: this.getNodeParameter('offerPrimaryColor', i) as string,
+                    };
+
+                    const pdfBuffer = await generateOfferLetter(offerData);
 
                     returnData.push({
                         json: {
                             success: true,
-                            templateLength: templateText.length,
-                            keys: Object.keys(data),
+                            candidateName: offerData.candidateName,
+                            jobTitle: offerData.jobTitle,
                         },
                         binary: {
                             data: await this.helpers.prepareBinaryData(pdfBuffer, 'offer_letter.pdf', 'application/pdf'),
@@ -843,7 +1175,7 @@ export class PdfBro implements INodeType {
                 } else if (operation === 'metadata') {
                     const binaryPropertyName = this.getNodeParameter('binaryPropertyName', i) as string;
                     const validBuffer = await this.helpers.getBinaryDataBuffer(i, binaryPropertyName);
-                    const pdf = await PDFDocument.load(validBuffer);
+                    const pdf = await PDFDocument.load(validBuffer, isPasswordProtected && password ? { password } : undefined);
 
                     returnData.push({
                         json: {
