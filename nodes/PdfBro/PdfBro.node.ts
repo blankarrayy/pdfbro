@@ -655,9 +655,9 @@ export class PdfBro implements INodeType {
                         operation: ['invoice'],
                     },
                 },
-                default: '1. Web Design Services (500$)\n2. Logo & Branding Package (1,200$)\n3. SEO Optimization (300$)',
-                description: 'Quickly add items in the format: "1. Product Name (price$)". Each line is one item. The currency symbol must match the Currency Symbol field above (defaults to $). Leave blank to use the Line Items table below instead.',
-                hint: 'Format: "1. Product Name (100$)" — one item per line. Overrides the Line Items table if not empty.',
+                default: '1. Web Design Services (1) (500$)\n2. Logo & Branding Package (2) (1,200$)\n3. SEO Optimization (300$)',
+                description: 'Quickly add items. Formats: "1. Name (qty) (price$)" or "1. Name (price$)" (qty defaults to 1). Currency must match the Currency Symbol field. Leave blank to use the Line Items table below.',
+                hint: 'New: "1. Product (qty) (price$)" | Classic: "1. Product (price$)" — one item per line. Overrides Line Items table if not empty.',
             },
 
             // ========================================
@@ -1036,48 +1036,86 @@ export class PdfBro implements INodeType {
                     const knownSymbols = ['Fr.', 'kr.', 'kr', 'Rp', 'RM', 'S/', 'lei', 'zł', '₫', '₩', '₪', '₺', '₽', '₹', '¥', '€', '£', '$'];
 
                     /**
-                     * Parse a single line like:
-                     *   "1. Web Design (500$)"
-                     *   "2. Logo (1,200€)"
-                     *   "3. Consulting ($300)"
-                     * Returns { description, unitPrice, detectedSymbol } or null if the line doesn't match.
+                     * Given the raw string inside a parenthesis group, try to extract a price + currency symbol.
+                     * Returns { unitPrice, detectedSymbol } or null if it doesn't look like a price.
                      */
-                    function parseQuickItemLine(line: string): { description: string; unitPrice: number; detectedSymbol: string } | null {
-                        // Strip optional leading numbering: "1." "2)" "- " etc.
-                        const stripped = line.replace(/^[\d]+[.):\-]\s*/, '').trim();
-
-                        // Match the price group inside the last pair of parentheses
-                        const parenMatch = stripped.match(/^(.+?)\s*\(([^)]+)\)\s*$/);
-                        if (!parenMatch) return null;
-
-                        const description = parenMatch[1].trim();
-                        const priceStr = parenMatch[2].trim();
-
-                        // Try to detect a currency symbol at the start or end of the price string
+                    function extractPriceGroup(raw: string): { unitPrice: number; detectedSymbol: string } | null {
                         let detectedSymbol = '';
-                        let numericStr = priceStr;
+                        let numericStr = raw.trim();
 
                         for (const sym of knownSymbols) {
-                            if (priceStr.startsWith(sym)) {
+                            if (numericStr.startsWith(sym)) {
                                 detectedSymbol = sym;
-                                numericStr = priceStr.slice(sym.length).trim();
+                                numericStr = numericStr.slice(sym.length).trim();
                                 break;
                             }
-                            if (priceStr.endsWith(sym)) {
+                            if (numericStr.endsWith(sym)) {
                                 detectedSymbol = sym;
-                                numericStr = priceStr.slice(0, priceStr.length - sym.length).trim();
+                                numericStr = numericStr.slice(0, numericStr.length - sym.length).trim();
                                 break;
                             }
                         }
 
-                        // Remove thousands separators (commas / periods used as thousands sep)
-                        // Strategy: if the string has a comma followed by exactly 3 digits at the end → thousands sep
-                        const cleanedNum = numericStr.replace(/,(?=\d{3}(?:[^\d]|$))/g, '').replace(/\.(?=\d{3}(?:[^\d]|$))/g, '');
+                        // Remove thousands separators then parse
+                        const cleanedNum = numericStr
+                            .replace(/,(?=\d{3}(?:[^\d]|$))/g, '')
+                            .replace(/\.(?=\d{3}(?:[^\d]|$))/g, '');
                         const unitPrice = parseFloat(cleanedNum);
+                        if (isNaN(unitPrice)) return null;
 
-                        if (isNaN(unitPrice) || description === '') return null;
+                        return { unitPrice, detectedSymbol };
+                    }
 
-                        return { description, unitPrice, detectedSymbol };
+                    /**
+                     * Parse a single item line. Supported formats:
+                     *   "1. Product A (2) (100$)"      ← qty=2,  price=100
+                     *   "1. Product A (100$)"           ← qty=1,  price=100
+                     *   "2. Logo (1,200€)"              ← qty=1,  price=1200
+                     *   "3. Consulting ($300)"          ← qty=1,  price=300
+                     * Returns { description, quantity, unitPrice, detectedSymbol } or null.
+                     */
+                    function parseQuickItemLine(line: string): { description: string; quantity: number; unitPrice: number; detectedSymbol: string } | null {
+                        // Strip optional leading numbering: "1." "2)" "- " etc.
+                        const stripped = line.replace(/^[\d]+[.):\-]\s*/, '').trim();
+
+                        // --- Try TWO-paren format: "Description (qty) (price)" ---
+                        const twoParenMatch = stripped.match(/^(.+?)\s*\(([^)]+)\)\s*\(([^)]+)\)\s*$/);
+                        if (twoParenMatch) {
+                            const description = twoParenMatch[1].trim();
+                            const firstGroup  = twoParenMatch[2].trim();
+                            const secondGroup = twoParenMatch[3].trim();
+
+                            // First group must be a plain integer/decimal (the quantity)
+                            const qty = parseFloat(firstGroup.replace(/,/g, ''));
+                            const priceResult = extractPriceGroup(secondGroup);
+
+                            if (!isNaN(qty) && qty > 0 && priceResult && description !== '') {
+                                return {
+                                    description,
+                                    quantity: Math.max(1, Math.round(qty)),
+                                    unitPrice: priceResult.unitPrice,
+                                    detectedSymbol: priceResult.detectedSymbol,
+                                };
+                            }
+                        }
+
+                        // --- Fall back to ONE-paren format: "Description (price)" ---
+                        const oneParenMatch = stripped.match(/^(.+?)\s*\(([^)]+)\)\s*$/);
+                        if (oneParenMatch) {
+                            const description = oneParenMatch[1].trim();
+                            const priceResult = extractPriceGroup(oneParenMatch[2].trim());
+
+                            if (priceResult && description !== '') {
+                                return {
+                                    description,
+                                    quantity: 1,
+                                    unitPrice: priceResult.unitPrice,
+                                    detectedSymbol: priceResult.detectedSymbol,
+                                };
+                            }
+                        }
+
+                        return null;
                     }
 
                     let invoiceItems: InvoiceItem[] = [];
@@ -1090,7 +1128,7 @@ export class PdfBro implements INodeType {
                         const normalizedText = flatText.replace(/\)\s+(?=\d+\s*[.):\-])/g, ')\n');
                         const lines = normalizedText.split('\n').map((l: string) => l.trim()).filter((l: string) => l !== '');
 
-                        const parsedLines: Array<{ description: string; unitPrice: number; detectedSymbol: string }> = [];
+                        const parsedLines: Array<{ description: string; quantity: number; unitPrice: number; detectedSymbol: string }> = [];
 
                         for (const line of lines) {
                             const parsed = parseQuickItemLine(line);
@@ -1121,7 +1159,7 @@ export class PdfBro implements INodeType {
 
                         invoiceItems = parsedLines.map(p => ({
                             description: p.description,
-                            quantity: 1,
+                            quantity: p.quantity,
                             unitPrice: p.unitPrice,
                         }));
 
