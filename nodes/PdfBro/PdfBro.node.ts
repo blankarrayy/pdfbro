@@ -801,7 +801,7 @@ export class PdfBro implements INodeType {
         const operation = this.getNodeParameter('operation', 0) as string;
 
         // Dynamic imports to prevent load-time crashes
-        const { PDFDocument, degrees } = require('pdf-lib');
+        const { PDFDocument, degrees } = require('@yongseok_choi/pdf-lib');
 
         // --- Helper: Parse Split Range ---
         const parseRange = (rangeStr: string, totalPages: number): number[] => {
@@ -901,7 +901,7 @@ export class PdfBro implements INodeType {
                                 } catch (e) {}
 
                                 const validBuffer = await this.helpers.getBinaryDataBuffer(i, propName);
-                                const pdf = await PDFDocument.load(validBuffer, isPasswordProtected && password ? { password } : undefined);
+                                const pdf = await PDFDocument.load(validBuffer, isPasswordProtected && password ? { password, ignoreEncryption: true } : { ignoreEncryption: true });
                                 const copiedPages = await mergedPdf.copyPages(pdf, pdf.getPageIndices());
                                 copiedPages.forEach((page: any) => mergedPdf.addPage(page));
                                 pdfCount++;
@@ -952,7 +952,7 @@ export class PdfBro implements INodeType {
                     const rangeStr = this.getNodeParameter('splitRange', i) as string;
 
                     const validBuffer = await this.helpers.getBinaryDataBuffer(i, binaryPropertyName);
-                    const pdf = await PDFDocument.load(validBuffer, isPasswordProtected && password ? { password } : undefined);
+                    const pdf = await PDFDocument.load(validBuffer, isPasswordProtected && password ? { password, ignoreEncryption: true } : { ignoreEncryption: true });
                     const totalPages = pdf.getPageCount();
 
                     // Parse logic
@@ -1085,7 +1085,7 @@ export class PdfBro implements INodeType {
                     const degreesVal = this.getNodeParameter('rotationDegrees', i) as number;
 
                     const validBuffer = await this.helpers.getBinaryDataBuffer(i, binaryPropertyName);
-                    const pdf = await PDFDocument.load(validBuffer, isPasswordProtected && password ? { password } : undefined);
+                    const pdf = await PDFDocument.load(validBuffer, isPasswordProtected && password ? { password, ignoreEncryption: true } : { ignoreEncryption: true });
                     const pages = pdf.getPages();
 
                     pages.forEach((page: any) => {
@@ -1108,13 +1108,12 @@ export class PdfBro implements INodeType {
                     const binaryPropertyName = this.getNodeParameter('binaryPropertyName', i) as string;
                     const validBuffer = await this.helpers.getBinaryDataBuffer(i, binaryPropertyName);
                     
-                    let bufferToParse = validBuffer;
+                    let parseInput: any = validBuffer;
                     if (isPasswordProtected && password) {
-                        const pdf = await PDFDocument.load(validBuffer, { password });
-                        bufferToParse = Buffer.from(await pdf.save());
+                        parseInput = { data: validBuffer, password: password };
                     }
                     
-                    const data = await pdfParse(bufferToParse);
+                    const data = await pdfParse(parseInput);
 
                     returnData.push({
                         json: {
@@ -1175,7 +1174,7 @@ export class PdfBro implements INodeType {
                 } else if (operation === 'metadata') {
                     const binaryPropertyName = this.getNodeParameter('binaryPropertyName', i) as string;
                     const validBuffer = await this.helpers.getBinaryDataBuffer(i, binaryPropertyName);
-                    const pdf = await PDFDocument.load(validBuffer, isPasswordProtected && password ? { password } : undefined);
+                    const pdf = await PDFDocument.load(validBuffer, isPasswordProtected && password ? { password, ignoreEncryption: true } : { ignoreEncryption: true });
 
                     returnData.push({
                         json: {

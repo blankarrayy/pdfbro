@@ -1,4 +1,4 @@
-import { PDFDocument, StandardFonts, rgb, PDFFont, PDFPage } from 'pdf-lib';
+import { PDFDocument, StandardFonts, rgb, PDFFont, PDFPage } from '@yongseok_choi/pdf-lib';
 
 // ====================
 // TYPE DEFINITIONS
