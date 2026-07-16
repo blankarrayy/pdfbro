@@ -1083,8 +1083,13 @@ export class PdfBro implements INodeType {
                     let invoiceItems: InvoiceItem[] = [];
 
                     if (quickItemsRaw !== '') {
-                        // Parse each non-empty line
-                        const lines = quickItemsRaw.split('\n').map((l: string) => l.trim()).filter((l: string) => l !== '');
+                        // Normalize: flatten all whitespace/newlines to spaces, then re-split
+                        // at item boundaries so "1. X(10$) 2. Y(20$)" works just like two separate lines.
+                        const flatText = quickItemsRaw.replace(/\r?\n|\r/g, ' ').replace(/\s+/g, ' ').trim();
+                        // Inject a newline before each "N." / "N)" that comes after a closing paren
+                        const normalizedText = flatText.replace(/\)\s+(?=\d+\s*[.):\-])/g, ')\n');
+                        const lines = normalizedText.split('\n').map((l: string) => l.trim()).filter((l: string) => l !== '');
+
                         const parsedLines: Array<{ description: string; unitPrice: number; detectedSymbol: string }> = [];
 
                         for (const line of lines) {
