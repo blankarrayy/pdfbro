@@ -641,6 +641,26 @@ export class PdfBro implements INodeType {
             },
 
             // ========================================
+            // INVOICE - Quick Add Items
+            // ========================================
+            {
+                displayName: 'Quick Add Items',
+                name: 'quickItems',
+                type: 'string',
+                typeOptions: {
+                    rows: 5,
+                },
+                displayOptions: {
+                    show: {
+                        operation: ['invoice'],
+                    },
+                },
+                default: '1. Web Design Services (500$)\n2. Logo & Branding Package (1,200$)\n3. SEO Optimization (300$)',
+                description: 'Quickly add items in the format: "1. Product Name (price$)". Each line is one item. The currency symbol must match the Currency Symbol field above (defaults to $). Leave blank to use the Line Items table below instead.',
+                hint: 'Format: "1. Product Name (100$)" — one item per line. Overrides the Line Items table if not empty.',
+            },
+
+            // ========================================
             // INVOICE - Line Items
             // ========================================
             {
@@ -686,7 +706,7 @@ export class PdfBro implements INodeType {
                         ],
                     },
                 ],
-                description: 'Add line items to the invoice',
+                description: 'Add line items to the invoice. Ignored when Quick Add Items has content.',
             },
 
             // ========================================
@@ -1009,21 +1029,114 @@ export class PdfBro implements INodeType {
                     const terms = this.getNodeParameter('terms', i) as string;
                     const paymentInstructions = this.getNodeParameter('paymentInstructions', i) as string;
 
-                    // Get line items
-                    // @ts-ignore
-                    const lineItemsRaw = this.getNodeParameter('lineItems', i)?.items as Array<{
-                        description: string;
-                        quantity: number;
-                        unitPrice: number;
-                    }> || [];
+                    // ---- Quick Add Items parser ----
+                    const quickItemsRaw = (this.getNodeParameter('quickItems', i) as string || '').trim();
 
-                    const invoiceItems: InvoiceItem[] = lineItemsRaw.map(item => ({
-                        description: item.description || 'Item',
-                        quantity: item.quantity || 1,
-                        unitPrice: item.unitPrice || 0,
-                    }));
+                    // Known currency symbols for detection (ordered longest-first to avoid partial matches)
+                    const knownSymbols = ['Fr.', 'kr.', 'kr', 'Rp', 'RM', 'S/', 'lei', 'zł', '₫', '₩', '₪', '₺', '₽', '₹', '¥', '€', '£', '$'];
 
-                    // If no items provided, add a placeholder
+                    /**
+                     * Parse a single line like:
+                     *   "1. Web Design (500$)"
+                     *   "2. Logo (1,200€)"
+                     *   "3. Consulting ($300)"
+                     * Returns { description, unitPrice, detectedSymbol } or null if the line doesn't match.
+                     */
+                    function parseQuickItemLine(line: string): { description: string; unitPrice: number; detectedSymbol: string } | null {
+                        // Strip optional leading numbering: "1." "2)" "- " etc.
+                        const stripped = line.replace(/^[\d]+[.):\-]\s*/, '').trim();
+
+                        // Match the price group inside the last pair of parentheses
+                        const parenMatch = stripped.match(/^(.+?)\s*\(([^)]+)\)\s*$/);
+                        if (!parenMatch) return null;
+
+                        const description = parenMatch[1].trim();
+                        const priceStr = parenMatch[2].trim();
+
+                        // Try to detect a currency symbol at the start or end of the price string
+                        let detectedSymbol = '';
+                        let numericStr = priceStr;
+
+                        for (const sym of knownSymbols) {
+                            if (priceStr.startsWith(sym)) {
+                                detectedSymbol = sym;
+                                numericStr = priceStr.slice(sym.length).trim();
+                                break;
+                            }
+                            if (priceStr.endsWith(sym)) {
+                                detectedSymbol = sym;
+                                numericStr = priceStr.slice(0, priceStr.length - sym.length).trim();
+                                break;
+                            }
+                        }
+
+                        // Remove thousands separators (commas / periods used as thousands sep)
+                        // Strategy: if the string has a comma followed by exactly 3 digits at the end → thousands sep
+                        const cleanedNum = numericStr.replace(/,(?=\d{3}(?:[^\d]|$))/g, '').replace(/\.(?=\d{3}(?:[^\d]|$))/g, '');
+                        const unitPrice = parseFloat(cleanedNum);
+
+                        if (isNaN(unitPrice) || description === '') return null;
+
+                        return { description, unitPrice, detectedSymbol };
+                    }
+
+                    let invoiceItems: InvoiceItem[] = [];
+
+                    if (quickItemsRaw !== '') {
+                        // Parse each non-empty line
+                        const lines = quickItemsRaw.split('\n').map((l: string) => l.trim()).filter((l: string) => l !== '');
+                        const parsedLines: Array<{ description: string; unitPrice: number; detectedSymbol: string }> = [];
+
+                        for (const line of lines) {
+                            const parsed = parseQuickItemLine(line);
+                            if (parsed) {
+                                parsedLines.push(parsed);
+                            }
+                        }
+
+                        if (parsedLines.length === 0) {
+                            throw new Error('Quick Add Items: Could not parse any items. Use format: "1. Product Name (100$)"');
+                        }
+
+                        // Validate: all detected symbols must be the same
+                        const symbolsUsed = parsedLines.map(p => p.detectedSymbol).filter(s => s !== '');
+                        const uniqueSymbols = [...new Set(symbolsUsed)];
+                        if (uniqueSymbols.length > 1) {
+                            throw new Error(
+                                `Quick Add Items: All items must use the same currency. Found mixed currencies: ${uniqueSymbols.join(', ')}. Please use a single currency across all items.`
+                            );
+                        }
+
+                        // Validate: if a symbol was detected, it must match the currency field
+                        if (uniqueSymbols.length === 1 && uniqueSymbols[0] !== currency) {
+                            throw new Error(
+                                `Quick Add Items: Currency mismatch. Items use "${uniqueSymbols[0]}" but the Currency Symbol field is set to "${currency}". Please align them.`
+                            );
+                        }
+
+                        invoiceItems = parsedLines.map(p => ({
+                            description: p.description,
+                            quantity: 1,
+                            unitPrice: p.unitPrice,
+                        }));
+
+                    } else {
+                        // Fall back to the fixedCollection line items
+                        // @ts-ignore
+                        const lineItemsRaw = this.getNodeParameter('lineItems', i)?.items as Array<{
+                            description: string;
+                            quantity: number;
+                            unitPrice: number;
+                        }> || [];
+
+                        invoiceItems = lineItemsRaw.map(item => ({
+                            description: item.description || 'Item',
+                            quantity: item.quantity || 1,
+                            unitPrice: item.unitPrice || 0,
+                        }));
+                    }
+
+                    // If still no items, add a placeholder
                     if (invoiceItems.length === 0) {
                         invoiceItems.push({
                             description: 'Service/Product',
