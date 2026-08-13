@@ -44,6 +44,11 @@ export class PdfBro implements INodeType {
                         description: 'Create professional PDF invoices from 5 customizable templates',
                     },
                     {
+                        name: 'Extract Images',
+                        value: 'extractImages',
+                        description: 'Extract embedded images from PDF as PNG files',
+                    },
+                    {
                         name: 'Extract Text',
                         value: 'extractText',
                         description: 'Extract text content from PDF',
@@ -108,7 +113,7 @@ export class PdfBro implements INodeType {
                 required: true,
                 displayOptions: {
                     show: {
-                        operation: ['split', 'extractText', 'metadata', 'rotate'],
+                        operation: ['split', 'extractImages', 'extractText', 'metadata', 'rotate'],
                     },
                 },
                 description: 'The name of the binary field containing the PDF',
@@ -123,7 +128,7 @@ export class PdfBro implements INodeType {
                 description: 'Whether the input PDF is password protected',
                 displayOptions: {
                     show: {
-                        operation: ['merge', 'split', 'extractText', 'metadata', 'rotate'],
+                        operation: ['merge', 'split', 'extractImages', 'extractText', 'metadata', 'rotate'],
                     },
                 },
             },
@@ -151,6 +156,20 @@ export class PdfBro implements INodeType {
                     },
                 },
                 description: 'Pages to extract. Examples: "1" (1st page), "1-3" (1st to 3rd), "7-" (7th to end), "-1" (last page), "*" (all pages separately).',
+            },
+
+            // EXTRACT IMAGES Operations
+            {
+                displayName: 'Extract Pages Range',
+                name: 'extractImagesPageRange',
+                type: 'string',
+                default: '*',
+                displayOptions: {
+                    show: {
+                        operation: ['extractImages'],
+                    },
+                },
+                description: 'Pages to extract images from. Examples: "1" (1st page), "1-3" (1st to 3rd), "7-" (7th to end), "-1" (last page), "*" (all pages).',
             },
 
             // ========================================
@@ -1005,6 +1024,59 @@ export class PdfBro implements INodeType {
                             binary: {
                                 data: await this.helpers.prepareBinaryData(Buffer.from(newPdfBuffer), 'extracted.pdf', 'application/pdf'),
                             },
+                        });
+                    }
+
+                } else if (operation === 'extractImages') {
+                    const binaryPropertyName = this.getNodeParameter('binaryPropertyName', i) as string;
+                    const rangeStr = this.getNodeParameter('extractImagesPageRange', i) as string;
+
+                    const validBuffer = await this.helpers.getBinaryDataBuffer(i, binaryPropertyName);
+                    
+                    const { getDocumentProxy, extractImages } = require('unpdf');
+                    const sharp = require('sharp');
+                    
+                    const pdfData = new Uint8Array(validBuffer);
+                    const pdfProxy = await getDocumentProxy(pdfData, isPasswordProtected && password ? { password } : {});
+                    
+                    const totalPages = pdfProxy.numPages;
+                    const indicesToProcess = parseRange(rangeStr, totalPages);
+                    
+                    let imageCounter = 0;
+                    for (const pageIndex of indicesToProcess) {
+                        const pageNumber = pageIndex + 1;
+                        const imagesData = await extractImages(pdfProxy, pageNumber);
+                        
+                        for (const imgData of imagesData) {
+                            imageCounter++;
+                            const pngBuffer = await sharp(imgData.data, {
+                                raw: {
+                                    width: imgData.width,
+                                    height: imgData.height,
+                                    channels: imgData.channels as 1 | 3 | 4,
+                                }
+                            }).png().toBuffer();
+                            
+                            returnData.push({
+                                json: {
+                                    ...items[i].json,
+                                    extractedImage: true,
+                                    pageNumber: pageNumber,
+                                    imageIndex: imageCounter,
+                                    width: imgData.width,
+                                    height: imgData.height,
+                                    channels: imgData.channels
+                                },
+                                binary: {
+                                    data: await this.helpers.prepareBinaryData(pngBuffer, `page_${pageNumber}_image_${imageCounter}.png`, 'image/png'),
+                                },
+                            });
+                        }
+                    }
+                    
+                    if (imageCounter === 0) {
+                        returnData.push({
+                            json: { ...items[i].json, extractedImage: false, message: 'No images found on selected pages' }
                         });
                     }
 

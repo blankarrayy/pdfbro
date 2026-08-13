@@ -27,7 +27,9 @@
     ],
     "dependencies": {
         "@yongseok_choi/pdf-lib": "^2.2.6",
-        "pdf-parse": "^1.1.1"
+        "pdf-parse": "^1.1.1",
+        "sharp": "^0.35.3",
+        "unpdf": "^1.8.0"
     },
     "devDependencies": {
         "@types/node": "^16.0.0",
