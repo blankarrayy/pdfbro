@@ -1,4 +1,4 @@
-import { PDFDocument, PDFPage, rgb, StandardFonts, PDFFont } from '@yongseok_choi/pdf-lib';
+import type { PDFDocument, PDFPage, PDFFont } from '@yongseok_choi/pdf-lib';
 
 // ====================
 // TYPE DEFINITIONS
@@ -100,6 +100,7 @@ function drawMultilineText(
 // ====================
 
 async function renderModernMinimal(pdf: PDFDocument, data: InvoiceData): Promise<void> {
+    const { StandardFonts, rgb } = require('@yongseok_choi/pdf-lib');
     const page = pdf.addPage([595, 842]); // A4
     const { width, height } = page.getSize();
 
@@ -221,6 +222,7 @@ async function renderModernMinimal(pdf: PDFDocument, data: InvoiceData): Promise
 }
 
 async function renderCorporateProfessional(pdf: PDFDocument, data: InvoiceData): Promise<void> {
+    const { StandardFonts, rgb } = require('@yongseok_choi/pdf-lib');
     const page = pdf.addPage([595, 842]); // A4
     const { width, height } = page.getSize();
 
@@ -350,6 +352,7 @@ async function renderCorporateProfessional(pdf: PDFDocument, data: InvoiceData):
 }
 
 async function renderCreativeBold(pdf: PDFDocument, data: InvoiceData): Promise<void> {
+    const { StandardFonts, rgb } = require('@yongseok_choi/pdf-lib');
     const page = pdf.addPage([595, 842]); // A4
     const { width, height } = page.getSize();
 
@@ -483,6 +486,7 @@ async function renderCreativeBold(pdf: PDFDocument, data: InvoiceData): Promise<
 }
 
 async function renderClassicElegant(pdf: PDFDocument, data: InvoiceData): Promise<void> {
+    const { StandardFonts, rgb } = require('@yongseok_choi/pdf-lib');
     const page = pdf.addPage([595, 842]); // A4
     const { width, height } = page.getSize();
 
@@ -633,6 +637,7 @@ async function renderClassicElegant(pdf: PDFDocument, data: InvoiceData): Promis
 }
 
 async function renderTechStartup(pdf: PDFDocument, data: InvoiceData): Promise<void> {
+    const { StandardFonts, rgb } = require('@yongseok_choi/pdf-lib');
     const page = pdf.addPage([595, 842]); // A4
     const { width, height } = page.getSize();
 
@@ -784,6 +789,7 @@ async function renderTechStartup(pdf: PDFDocument, data: InvoiceData): Promise<v
 // ====================
 
 export async function generateInvoice(data: InvoiceData): Promise<Buffer> {
+    const { PDFDocument } = require('@yongseok_choi/pdf-lib');
     const pdf = await PDFDocument.create();
 
     switch (data.template) {

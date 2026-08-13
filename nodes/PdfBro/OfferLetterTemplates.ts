@@ -1,4 +1,4 @@
-import { PDFDocument, StandardFonts, rgb, PDFFont, PDFPage } from '@yongseok_choi/pdf-lib';
+import type { PDFDocument, PDFFont, PDFPage } from '@yongseok_choi/pdf-lib';
 
 // ====================
 // TYPE DEFINITIONS
@@ -91,6 +91,7 @@ function drawMultilineText(
 // ====================
 
 export async function generateOfferLetter(data: OfferLetterData): Promise<Buffer> {
+    const { PDFDocument, StandardFonts, rgb } = require('@yongseok_choi/pdf-lib');
     const pdf = await PDFDocument.create();
     const page = pdf.addPage([595, 842]); // A4
     const { width, height } = page.getSize();
